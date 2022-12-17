@@ -1,6 +1,7 @@
 package com.kousenit.astro.services;
 
 import com.kousenit.astro.entities.CraftAndNumber;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,17 +24,20 @@ class AstroServiceTest {
     @BeforeEach
     void setUp() {
         List<CraftAndNumber> entries = List.of(
-                new CraftAndNumber(
-                        LocalDate.now(), "ISS", 3),
-                new CraftAndNumber(
-                        LocalDate.now(), "Hubble", 1));
+                new CraftAndNumber(LocalDate.now(), "ISS", 3),
+                new CraftAndNumber(LocalDate.now(), "Hubble", 1));
         saved = service.saveAll(entries);
+    }
+
+    @AfterEach
+    void tearDown() {
+        service.deleteAll();
     }
 
     @Test
     void save() {
-        CraftAndNumber b5 = service.save(new CraftAndNumber(
-                LocalDate.now(), "Babylon 5", 3));
+        CraftAndNumber b5 = service.save(
+                new CraftAndNumber(LocalDate.now(), "Babylon 5", 3));
         assertThat(b5.getId()).isNotNull();
         System.out.println(b5);
     }
@@ -46,7 +50,8 @@ class AstroServiceTest {
     @Test
     void findByDate() {
         List<CraftAndNumber> found = service.findByDate(
-                LocalDate.now().toString());
+                LocalDate.now()
+                        .toString());
         assertThat(found).contains(saved.get(0), saved.get(1));
     }
 
@@ -58,10 +63,14 @@ class AstroServiceTest {
 
     @Test
     void dailyUpdate() {
-        List<CraftAndNumber> craftAndNumbers = service.dailyUpdate();
-        assertThat(craftAndNumbers).allMatch(craftAndNumber ->
-                craftAndNumber.getCraft().length() > 0 &&
-                craftAndNumber.getNumberOfAstronauts() >= 0);
-        craftAndNumbers.forEach(System.out::println);
+        Result<List<CraftAndNumber>> result = service.dailyUpdate();
+        System.out.println(result);
+        switch (result) {
+            case Success<List<CraftAndNumber>> s ->
+                    assertThat(s.value()).allMatch(craftAndNumber ->
+                        craftAndNumber.getCraft().length() > 0 &&
+                            craftAndNumber.getNumberOfAstronauts() >= 0);
+            case Failure<List<CraftAndNumber>> f -> assertThat(f.message()).isNotNull();
+        }
     }
 }

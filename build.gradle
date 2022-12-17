@@ -8,7 +8,8 @@ plugins {
 
 group = 'com.kousenit'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '17'
+sourceCompatibility = JavaVersion.VERSION_19
+targetCompatibility = JavaVersion.VERSION_19
 
 repositories {
     mavenCentral()
@@ -27,6 +28,11 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs(['--enable-preview'])
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.compilerArgs.add('--enable-preview')
 }
 
 hibernate {

@@ -3,12 +3,14 @@ package com.kousenit.astro.services;
 import com.kousenit.astro.dao.CraftAndNumberDao;
 import com.kousenit.astro.entities.CraftAndNumber;
 import com.kousenit.astro.json.AstroResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,16 +24,23 @@ public class AstroService {
         this.gateway = gateway;
     }
 
-    public List<CraftAndNumber> dailyUpdate() {
-        return extractMap(gateway.getAstronautResponse()).entrySet().stream()
-                .map(this::getCraftAndNumber)
-                .map(dao::save)
-                .peek(System.out::println)
-                .toList();
+    public Result<List<CraftAndNumber>> dailyUpdate() {
+        ResponseEntity<AstroResponse> resultEntity = gateway.getAstronautResponse();
+        if (resultEntity.getStatusCode().is2xxSuccessful()) {
+                List<CraftAndNumber> craftAndNumbers =
+                        extractMap(Objects.requireNonNull(resultEntity.getBody())).entrySet().stream()
+                                .map(this::getCraftAndNumber)
+                                .map(dao::save)
+                                .toList();
+                return Result.success(craftAndNumbers);
+        } else {
+            return Result.failure("Unexpected status code: " + resultEntity.getStatusCode());
+        }
     }
 
     private Map<String, Long> extractMap(AstroResponse data) {
-        return data.people().stream()
+        return data.people()
+                .stream()
                 .collect(Collectors.groupingBy(
                         AstroResponse.Assignment::craft, Collectors.counting()));
     }
@@ -64,5 +73,9 @@ public class AstroService {
 
     public List<CraftAndNumber> findAll() {
         return dao.findAll();
+    }
+
+    public void deleteAll() {
+        dao.deleteAll();
     }
 }
